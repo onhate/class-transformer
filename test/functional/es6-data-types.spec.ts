@@ -102,6 +102,51 @@ describe('es6 data types', () => {
     });
   });
 
+  it('using Set as source value', () => {
+    defaultMetadataStorage.clear();
+
+    class User {
+      id: number;
+      name: string;
+      @Type(() => Set)
+      weapons: Set<string>;
+    }
+
+    const plainUser = {
+      id: 1,
+      name: 'Max Pain',
+      weapons: new Set(['knife', 'eagle', 'ak-47']),
+    };
+
+    const weapons = new Set<string>();
+    weapons.add('knife');
+    weapons.add('eagle');
+    weapons.add('ak-47');
+
+    const user = new User();
+    user.id = 1;
+    user.name = 'Max Pain';
+    user.weapons = weapons;
+
+    const classedUser = plainToInstance(User, plainUser);
+    expect(classedUser).toBeInstanceOf(User);
+    expect(classedUser.id).toEqual(1);
+    expect(classedUser.name).toEqual('Max Pain');
+    expect(classedUser.weapons).toBeInstanceOf(Set);
+    expect(classedUser.weapons.size).toEqual(3);
+    expect(classedUser.weapons.has('knife')).toBeTruthy();
+    expect(classedUser.weapons.has('eagle')).toBeTruthy();
+    expect(classedUser.weapons.has('ak-47')).toBeTruthy();
+
+    const plainedUser = instanceToPlain(user);
+    expect(plainedUser).not.toBeInstanceOf(User);
+    expect(plainedUser).toEqual({
+      id: 1,
+      name: 'Max Pain',
+      weapons: ['knife', 'eagle', 'ak-47'],
+    });
+  });
+
   it('using Map with objects', () => {
     defaultMetadataStorage.clear();
 

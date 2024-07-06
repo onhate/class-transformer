@@ -3,8 +3,8 @@ import { ClassTransformOptions, TypeHelpOptions, TypeMetadata, TypeOptions } fro
 import { TransformationType } from './enums';
 import { getGlobal, isPromise } from './utils';
 
-function instantiateArrayType(arrayType: Function): Array<any> | Set<any> {
-  const array = new (arrayType as any)();
+function instantiateCollectionType(collectionType: Function): Array<any> | Set<any> {
+  const array = new (collectionType as any)();
   if (!(array instanceof Set) && !('push' in array)) {
     return [];
   }
@@ -32,14 +32,14 @@ export class TransformOperationExecutor {
     source: Record<string, any> | Record<string, any>[] | any,
     value: Record<string, any> | Record<string, any>[] | any,
     targetType: Function | TypeMetadata,
-    arrayType: Function,
+    collectionType: Function,
     isMap: boolean,
     level: number = 0
   ): any {
     if (Array.isArray(value) || value instanceof Set) {
       const newValue =
-        arrayType && this.transformationType === TransformationType.PLAIN_TO_CLASS
-          ? instantiateArrayType(arrayType)
+        collectionType && this.transformationType === TransformationType.PLAIN_TO_CLASS
+          ? instantiateCollectionType(collectionType)
           : [];
       (value as any[]).forEach((subValue, index) => {
         const subSource = source ? source[index] : undefined;
@@ -281,9 +281,10 @@ export class TransformOperationExecutor {
         }
 
         // if value is an array try to get its custom array type
-        const arrayType = Array.isArray(value[valueKey])
-          ? this.getReflectedType(targetType as Function, propertyName)
-          : undefined;
+        const collectionType =
+          Array.isArray(value[valueKey]) || value[valueKey] instanceof Set
+            ? this.getReflectedType(targetType as Function, propertyName)
+            : undefined;
 
         // const subValueKey = TransformationType === TransformationType.PLAIN_TO_CLASS && newKeyName ? newKeyName : key;
         const subSource = source ? source[valueKey] : undefined;
@@ -324,13 +325,13 @@ export class TransformOperationExecutor {
             // If nothing change, it means no custom transformation was applied, so use the subValue.
             finalValue = value[transformKey] === finalValue ? subValue : finalValue;
             // Apply the default transformation
-            finalValue = this.transform(subSource, finalValue, type, arrayType, isSubValueMap, level + 1);
+            finalValue = this.transform(subSource, finalValue, type, collectionType, isSubValueMap, level + 1);
           } else {
             if (subValue === undefined && this.options.exposeDefaultValues) {
               // Set default value if nothing provided
               finalValue = newValue[newValueKey];
             } else {
-              finalValue = this.transform(subSource, subValue, type, arrayType, isSubValueMap, level + 1);
+              finalValue = this.transform(subSource, subValue, type, collectionType, isSubValueMap, level + 1);
               finalValue = this.applyCustomTransformations(
                 finalValue,
                 targetType as Function,
